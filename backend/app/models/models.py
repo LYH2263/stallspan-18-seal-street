@@ -1,5 +1,5 @@
-from datetime import date, datetime
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text
+from datetime import date, datetime, time
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text, Time
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 
@@ -8,6 +8,9 @@ class MarketDay(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(64))
     day: Mapped[date] = mapped_column(Date)
+    # 可分配时段（时钟窗）：确认/试摆只在窗内可写；start > end 视为跨午夜窗
+    alloc_start: Mapped[time] = mapped_column(Time, default=time(0, 0))
+    alloc_end: Mapped[time] = mapped_column(Time, default=time(23, 59, 59))
 
 class Segment(Base):
     __tablename__ = "segments"

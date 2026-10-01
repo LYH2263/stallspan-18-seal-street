@@ -2,9 +2,12 @@
 import { onMounted, ref } from 'vue'
 import { api } from '../api'
 const rows = ref<any[]>([])
+const noRun = ref(false)
 onMounted(async () => {
-  const data = await api('/allocate/latest?segment_id=1')
-  rows.value = data.rejected || []
+  try {
+    const data = await api('/allocate/latest?segment_id=1')
+    rows.value = data.rejected || []
+  } catch { noRun.value = true } // 暂无运行记录（只读，不新增）
 })
 </script>
 <template>
@@ -19,6 +22,7 @@ onMounted(async () => {
         </tr>
       </tbody>
     </table>
-    <p v-if="!rows.length" class="muted">全部放下</p>
+    <p v-if="noRun" class="muted">暂无运行记录</p>
+    <p v-else-if="!rows.length" class="muted">全部放下</p>
   </div>
 </template>

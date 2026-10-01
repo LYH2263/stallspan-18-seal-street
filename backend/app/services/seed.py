@@ -1,15 +1,26 @@
-from datetime import date
+from datetime import date, datetime, timedelta
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+
 from app.models.models import MarketDay, Pillar, Segment, Vendor
+
 
 def seed_if_empty(db: Session) -> None:
     if (db.scalar(select(func.count()).select_from(MarketDay)) or 0) > 0:
         return
-    day = MarketDay(name="周末夜市", day=date(2026, 9, 20))
-    db.add(day); db.flush()
+    # 可分配时段设为当前时刻 6–7 小时之后：明显不含现在，
+    # 种子完成后确认与试摆皆被窗闸拒绝；在集日页把窗改回覆盖现在即恢复可写。
+    now = datetime.now()
+    alloc_start = (now + timedelta(hours=6)).time().replace(second=0, microsecond=0)
+    alloc_end = (now + timedelta(hours=7)).time().replace(second=0, microsecond=0)
+    day = MarketDay(name="周末夜市", day=date(2026, 9, 20),
+                    alloc_start=alloc_start, alloc_end=alloc_end)
+    db.add(day)
+    db.flush()
     seg = Segment(market_day_id=day.id, name="东街段", width_m=30.0)
-    db.add(seg); db.flush()
+    db.add(seg)
+    db.flush()
     db.add(Pillar(segment_id=seg.id, position_m=10.0, thickness_m=0.5, label="灯柱A"))
     db.add(Pillar(segment_id=seg.id, position_m=20.0, thickness_m=0.5, label="灯柱B"))
     vendors = [

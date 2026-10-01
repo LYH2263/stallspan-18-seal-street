@@ -141,6 +141,13 @@ th { color: var(--ss-muted); font-weight: 700; font-size: 0.78rem; }
 }
 .btn:hover { filter: brightness(1.06); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ghost { background: var(--ss-muted); margin-left: 0.4rem; }
+.ss-actions { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+input[type="time"] {
+  font: inherit; padding: 0.2rem 0.35rem;
+  border: 1px solid var(--ss-curb); border-radius: 3px;
+  background: #fff; color: var(--ss-ink);
+}
 .muted { color: var(--ss-muted); }
 .stat { font-size: 1.5rem; font-weight: 800; }
 

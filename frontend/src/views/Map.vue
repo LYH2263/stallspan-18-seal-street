@@ -1,12 +1,44 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { api } from '../api'
+
+const SEGMENT_ID = 1
 const data = ref<any>(null)
 const vendors = ref<any[]>([])
-async function run() { data.value = await api('/allocate/run?segment_id=1', { method: 'POST' }) }
+const day = ref<any>(null)
+const err = ref('')
+const mode = ref<'run' | 'preview' | ''>('')
+
+async function refreshDay() {
+  const [days, segments] = await Promise.all([api('/days'), api('/segments')])
+  const seg = (segments as any[]).find(s => s.id === SEGMENT_ID)
+  day.value = (days as any[]).find(d => d.id === seg?.market_day_id) || null
+}
+async function loadLatest() {
+  // 只读加载旧运行：窗外也能看旧色块，且不会新增运行
+  try {
+    data.value = await api(`/allocate/latest?segment_id=${SEGMENT_ID}`)
+    mode.value = 'run'
+  } catch { data.value = null; mode.value = '' }
+}
+async function confirmRun() {
+  err.value = ''
+  try {
+    data.value = await api(`/allocate/run?segment_id=${SEGMENT_ID}`, { method: 'POST' })
+    mode.value = 'run'
+    await refreshDay()
+  } catch (e: any) { err.value = e.message } // 窗外被后端拦下，行数不变
+}
+async function preview() {
+  err.value = ''
+  try {
+    data.value = await api(`/allocate/preview?segment_id=${SEGMENT_ID}`, { method: 'POST' })
+    mode.value = 'preview'
+  } catch (e: any) { err.value = e.message }
+}
 onMounted(async () => {
   vendors.value = await api('/vendors')
-  await run()
+  await Promise.all([refreshDay(), loadLatest()])
 })
 const colors = ['#e8a87c','#85dcb8','#e27d60','#c38d9e','#41b3a3','#f4a261','#e76f51']
 const cells = computed(() => {
@@ -26,7 +58,21 @@ const cells = computed(() => {
   <div class="ss-street-wrap">
     <h1>街段分配带</h1>
     <p class="sub">沿街一维开间 · 挡柱为竖直阻断 · 底部为摊主排队</p>
-    <button class="btn" @click="run">重新分配</button>
+    <p v-if="day" class="sub">
+      可分配时段 {{ day.alloc_start }}–{{ day.alloc_end }}
+      <span class="badge" :class="day.writable ? 'badge-ok' : 'badge-warn'">
+        {{ day.writable ? '窗内可分配' : '窗外只读' }}
+      </span>
+      · 运行条数 {{ day.run_count }}
+    </p>
+    <div class="ss-actions">
+      <button class="btn" @click="preview">试摆</button>
+      <button class="btn" @click="confirmRun">确认分配</button>
+      <span v-if="mode === 'preview'" class="badge badge-warn">试摆结果 · 未入库</span>
+      <span v-else-if="mode === 'run' && data" class="badge badge-ok">运行 #{{ data.id }}</span>
+    </div>
+    <p v-if="err" class="badge badge-bad">{{ err }}</p>
+    <p v-if="!data && !err" class="muted">暂无运行记录，窗内点击「确认分配」生成。</p>
     <div class="ss-band-ruler" v-if="data">
       <span>0 m</span>
       <span>{{ data.segment.name }} · {{ data.segment.width_m }} m</span>
